@@ -362,13 +362,13 @@ BEGIN
 
     -- Get comments on the Table if any
     SELECT
-        'COMMENT ON TABLE ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || ' IS '''|| obj_description(l_oid) || '''' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END INTO l_tab_comments
+        'COMMENT ON TABLE ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || ' IS '|| quote_literal(obj_description(l_oid)) || '' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END INTO l_tab_comments
     FROM pg_class
     WHERE relkind = 'r';
     -- Get comments on the columns of the Table if any
     FOR l_col_rec IN (
         SELECT
-            'COMMENT ON COLUMN ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || '.' || quote_ident(attname) || ' IS '''|| pg_catalog.col_description(l_oid, attnum) || '''' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END
+            'COMMENT ON COLUMN ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || '.' || quote_ident(attname) || ' IS '|| quote_literal(pg_catalog.col_description(l_oid, attnum)) || '' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END
         FROM
             pg_catalog.pg_attribute
         WHERE
