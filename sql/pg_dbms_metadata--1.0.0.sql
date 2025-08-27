@@ -124,7 +124,7 @@ BEGIN
     END IF;
     PERFORM set_config('DBMS_METADATA.' || name, value, false);
 END;
-$$ 
+$$
 LANGUAGE plpgsql;
 
 COMMENT ON PROCEDURE dbms_metadata.set_transform_param (text, text) IS 'Used to customize DDL through configuring session-level transform params.';
@@ -147,7 +147,7 @@ BEGIN
         PERFORM set_config('DBMS_METADATA.' || name, value::text, false);
     END IF;
 END;
-$$ 
+$$
 LANGUAGE plpgsql;
 
 ----
@@ -261,13 +261,13 @@ BEGIN
     SELECT current_setting('DBMS_METADATA.SEGMENT_ATTRIBUTES')::boolean INTO l_segment_attributes_guc;
     SELECT current_setting('DBMS_METADATA.STORAGE')::boolean INTO l_storage_guc;
 
-    /*  Getting the OID of the table. We will make remaining code in this function independent of parameters passed. 
+    /*  Getting the OID of the table. We will make remaining code in this function independent of parameters passed.
         For ex: when schema passed is null
         This sql statement is also used in many routines below */
     SELECT dbms_metadata.get_object_oid('TABLE', p_schema, p_table) INTO l_oid;
 
-    /*  We will get schema and object names so that we will not depend on parameters passed. 
-        For ex: when schema passed is null 
+    /*  We will get schema and object names so that we will not depend on parameters passed.
+        For ex: when schema passed is null
         Also we are checking oid returned is of desired object type
         This sql statement is also used in many routines below */
     SELECT n.nspname, c.relname INTO STRICT l_schema_name, l_table_name
@@ -313,10 +313,10 @@ BEGIN
         WHERE oid = l_oid
             AND relpersistence IN ('p','u');
     END IF;
-    
+
     -- Add Table DDL with its columns and their datatypes to the Output
     l_return := concat(l_return, '-- Table definition' || chr(10) || 'CREATE '|| CASE l_relpersistence WHEN 'u' THEN 'UNLOGGED ' ELSE '' END ||'TABLE ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || ' (' || l_table_def || ')');
-    
+
     IF l_partitioning_guc THEN
         -- Get partitioning info of table
         SELECT
@@ -362,13 +362,13 @@ BEGIN
 
     -- Get comments on the Table if any
     SELECT
-        'COMMENT ON TABLE ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || ' IS '''|| obj_description(l_oid) || '''' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END INTO l_tab_comments
+        'COMMENT ON TABLE ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || ' IS '|| quote_literal(obj_description(l_oid)) || '' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END INTO l_tab_comments
     FROM pg_class
     WHERE relkind = 'r';
     -- Get comments on the columns of the Table if any
     FOR l_col_rec IN (
         SELECT
-            'COMMENT ON COLUMN ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || '.' || quote_ident(attname) || ' IS '''|| pg_catalog.col_description(l_oid, attnum) || '''' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END
+            'COMMENT ON COLUMN ' || quote_ident(l_schema_name) || '.' || quote_ident(l_table_name) || '.' || quote_ident(attname) || ' IS '|| quote_literal(pg_catalog.col_description(l_oid, attnum)) || '' || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END
         FROM
             pg_catalog.pg_attribute
         WHERE
@@ -554,8 +554,8 @@ BEGIN
         pg_proc p
     WHERE
         p.oid = l_oid
-        AND p.prokind = routine_type_flag; 
-    
+        AND p.prokind = routine_type_flag;
+
     IF l_sqlterminator_guc THEN
         routine_code := concat(routine_code, ';');
     END IF;
@@ -596,15 +596,15 @@ BEGIN
 
     SELECT i.indexdef INTO STRICT index_def
     FROM pg_indexes i
-    JOIN pg_class c 
+    JOIN pg_class c
         ON i.schemaname::regnamespace = c.relnamespace AND i.indexname = c.relname
     WHERE
         c.oid = l_oid
         AND c.relkind = 'i';
-    
+
     IF l_sqlterminator_guc THEN
         index_def := concat(index_def, ';');
-    END IF;    
+    END IF;
     RETURN index_def;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -645,14 +645,14 @@ BEGIN
     FROM pg_constraint con
     JOIN pg_class cl ON con.conrelid = cl.oid
     JOIN pg_class cc ON con.connamespace = cc.relnamespace AND con.conname = cc.relname
-    JOIN pg_namespace n ON cc.relnamespace = n.oid 
+    JOIN pg_namespace n ON cc.relnamespace = n.oid
     WHERE cc.oid = l_oid
         AND cc.relkind = 'i'
         AND contype <> 'f';
 
     IF l_sqlterminator_guc THEN
         alter_statement := concat(alter_statement, ';');
-    END IF; 
+    END IF;
     RETURN alter_statement;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -696,11 +696,11 @@ BEGIN
     WHERE conname = constraint_name
         AND contype = 'c'
         AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name);
-    
+
     IF l_sqlterminator_guc THEN
         alter_statement := concat(alter_statement, ';');
-    END IF; 
-    
+    END IF;
+
     RETURN alter_statement;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -744,10 +744,10 @@ BEGIN
     WHERE conname = constraint_name
         AND contype = 'f'
         AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name);
-    
+
     IF l_sqlterminator_guc THEN
         alter_statement := concat(alter_statement, ';');
-    END IF; 
+    END IF;
     RETURN alter_statement;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -794,7 +794,7 @@ BEGIN
 
     IF l_sqlterminator_guc THEN
         trigger_def := concat(trigger_def, ';');
-    END IF; 
+    END IF;
     RETURN trigger_def;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -827,7 +827,7 @@ BEGIN
 
     -- Getting values of transform params
     SELECT current_setting('DBMS_METADATA.SQLTERMINATOR')::boolean INTO l_sqlterminator_guc;
-    
+
     SELECT dbms_metadata.get_object_oid('TYPE', p_schema_name, p_type_name) INTO l_oid;
 
     SELECT n.nspname, c.relname INTO STRICT l_schema_name, l_type_name
@@ -835,13 +835,13 @@ BEGIN
     JOIN pg_namespace n ON c.relnamespace = n.oid
     WHERE c.oid = l_oid
         AND c.relkind = 'c';
-    
+
     FOR l_attribute IN
         SELECT quote_ident(a.attname) as attname, format_type(a.atttypid, a.atttypmod) AS format_type
         FROM pg_attribute a
         JOIN pg_class c ON a.attrelid = c.oid
         WHERE c.oid = l_oid
-            AND c.relkind = 'c' 
+            AND c.relkind = 'c'
             AND a.attnum > 0
         ORDER BY a.attnum
     LOOP
@@ -856,7 +856,7 @@ BEGIN
         l_create_statement := concat('CREATE TYPE ', quote_ident(l_schema_name), '.', quote_ident(l_type_name), ' AS (', l_attribute_list, ')');
         IF l_sqlterminator_guc THEN
             l_create_statement := concat(l_create_statement, ';');
-        END IF; 
+        END IF;
     END IF;
 
     RETURN l_create_statement;
@@ -919,7 +919,7 @@ BEGIN
                 AND col.attnum = ad.adnum
             JOIN pg_class tbl ON tbl.oid = ad.adrelid
             JOIN pg_namespace ts ON ts.oid = tbl.relnamespace
-            JOIN pg_sequences seq ON seq.schemaname = sn.nspname 
+            JOIN pg_sequences seq ON seq.schemaname = sn.nspname
                 AND seq.sequencename = s.relname
         WHERE
             s.relkind = 'S'
@@ -933,7 +933,7 @@ BEGIN
                     l_sequences := concat(l_sequences, l_seq_rec, chr(10));
                 END IF;
             END LOOP;
-    
+
     IF l_sequences IS NULL THEN
         RAISE EXCEPTION 'specified object of type SEQUENCE not found';
     END IF;
@@ -953,7 +953,7 @@ REVOKE ALL ON FUNCTION dbms_metadata.get_sequence_ddl_of_table FROM PUBLIC;
 -- DBMS_METADATA.GET_CONSTRAINTS_DDL_OF_TABLE
 ----
 CREATE OR REPLACE FUNCTION dbms_metadata.get_constraints_ddl_of_table (
-    p_schema text, 
+    p_schema text,
     p_table text
 ) RETURNS text
     AS $$
@@ -976,7 +976,7 @@ BEGIN
 
     -- Getting the OID of the table
     SELECT dbms_metadata.get_object_oid('TABLE', p_schema, p_table) INTO l_oid;
-    
+
     SELECT n.nspname, c.relname INTO STRICT l_schema_name, l_table_name
     FROM pg_class c
     JOIN pg_namespace n ON c.relnamespace = n.oid
@@ -1059,7 +1059,7 @@ REVOKE ALL ON FUNCTION dbms_metadata.get_constraints_ddl_of_table FROM PUBLIC;
 -- DBMS_METADATA.GET_REF_CONSTRAINTS_DDL_OF_TABLE
 ----
 CREATE OR REPLACE FUNCTION dbms_metadata.get_ref_constraints_ddl_of_table (
-    p_schema text, 
+    p_schema text,
     p_table text
 ) RETURNS text
     AS $$
@@ -1079,7 +1079,7 @@ BEGIN
 
     -- Getting the OID of the table
     SELECT dbms_metadata.get_object_oid('TABLE', p_schema, p_table) INTO l_oid;
-    
+
     FOR l_fkey_rec IN (
         SELECT
             'ALTER TABLE ' || quote_ident(nspname) || '.' || quote_ident(relname) || ' ADD CONSTRAINT ' || quote_ident(conname) || ' ' || pg_get_constraintdef(pg_constraint.oid) || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END
@@ -1102,7 +1102,7 @@ BEGIN
     IF l_fkey IS NULL THEN
         RAISE EXCEPTION 'specified object of type REF_CONSTRAINT not found';
     END IF;
-    
+
     l_return := l_fkey;
 
     -- Return the final DDL prepared
@@ -1136,7 +1136,7 @@ BEGIN
 
     -- Getting the OID of the table
     SELECT dbms_metadata.get_object_oid('TABLE', p_schema, p_table) INTO l_oid;
-    
+
     -- Get Index Definitions
     FOR l_const_rec IN (
         SELECT
@@ -1173,7 +1173,7 @@ BEGIN
                 l_indexes := concat(l_indexes, l_const_rec.pg_get_indexdef, CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END, chr(10));
             END IF;
         END LOOP;
-    
+
     IF l_indexes IS NULL THEN
         RAISE EXCEPTION 'specified object of type INDEX not found';
     END IF;
@@ -1223,7 +1223,7 @@ BEGIN
     IF l_return IS NULL OR l_return = '' THEN
         RAISE EXCEPTION 'specified object of type TRIGGER not found';
     END IF;
-    
+
     RETURN l_return;
 END;
 $$
@@ -1252,8 +1252,8 @@ BEGIN
 
     -- Getting values of transform params
     SELECT current_setting('DBMS_METADATA.SQLTERMINATOR')::boolean INTO l_sqlterminator_guc;
-    
-    FOR l_role_info IN 
+
+    FOR l_role_info IN
         SELECT r.rolname AS role_name
         FROM pg_roles r
         JOIN pg_auth_members m ON r.oid = m.roleid
@@ -1265,7 +1265,7 @@ BEGIN
     END LOOP;
     IF l_grant_statements IS NULL THEN
         RAISE EXCEPTION 'role grant for grantee % not found', p_grantee;
-    END IF;    
+    END IF;
     RETURN l_grant_statements;
 END;
 $$ LANGUAGE plpgsql;
@@ -1281,8 +1281,8 @@ REVOKE ALL ON FUNCTION dbms_metadata.get_granted_roles_ddl FROM PUBLIC;
 ----
 -- DBMS_METADATA.GET_OBJECT_OID
 ----
-/*  This function may not return OID of given object type sometimes. For example if TABLE is passed as object_type, 
-    but actually there is no table with that name, but there is a view. This function will then return oid of the view. 
+/*  This function may not return OID of given object type sometimes. For example if TABLE is passed as object_type,
+    but actually there is no table with that name, but there is a view. This function will then return oid of the view.
     So object type check must be done after fetting oid from this function. */
 CREATE OR REPLACE FUNCTION dbms_metadata.get_object_oid(p_object_type text, p_schema text, p_object_name text)
 RETURNS oid AS $$
@@ -1312,11 +1312,11 @@ BEGIN
         IF p_schema IS NULL THEN
             SELECT quote_ident(p_object_name)::regproc::oid INTO STRICT l_oid;
         ELSE
-            SELECT 
+            SELECT
                 oid INTO STRICT l_oid
-            FROM 
-                pg_proc 
-            WHERE 
+            FROM
+                pg_proc
+            WHERE
                 proname = p_object_name
                 AND pronamespace = l_schema_oid;
         END IF;
@@ -1348,7 +1348,7 @@ BEGIN
         pg_namespace
     WHERE
         nspname = p_schema;
-        
+
     RETURN l_schema_oid;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
