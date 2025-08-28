@@ -1233,6 +1233,61 @@ COMMENT ON FUNCTION dbms_metadata.get_triggers_ddl_of_table (text, text) IS 'Thi
 
 REVOKE ALL ON FUNCTION dbms_metadata.get_triggers_ddl_of_table FROM PUBLIC;
 
+----
+-- DBMS_METADATA.GET_ENUMS_DDL_OF_TABLE
+----
+CREATE OR REPLACE FUNCTION dbms_metadata.get_enums_ddl_of_table(schema_name text, table_name text)
+RETURNS text AS
+$$
+DECLARE
+    l_oid oid;
+    enum_def text;
+    l_return text := '';
+    l_sqlterminator_guc boolean;
+BEGIN
+    -- Initialize transform params if they have not been set before
+    PERFORM dbms_metadata.init_transform_params();
+
+    -- Getting values of transform params
+    SELECT current_setting('DBMS_METADATA.SQLTERMINATOR')::boolean INTO l_sqlterminator_guc;
+
+    -- Getting the OID of the table
+    SELECT dbms_metadata.get_object_oid('TABLE', schema_name, table_name) INTO l_oid;
+
+    FOR enum_def IN
+        WITH tabenum AS (
+        SELECT
+            format_type(a.atttypid, a.atttypmod) AS enumname,
+            string_agg(quote_literal(e.enumlabel), ', ' ORDER BY e.enumsortorder) AS enumvalues
+        FROM
+            pg_attribute a
+            INNER JOIN pg_enum e ON a.atttypid = e.enumtypid
+        WHERE
+            a.attname NOT IN ('tableoid', 'cmax', 'xmax', 'cmin', 'xmin', 'ctid')
+            AND NOT attisdropped
+            AND a.attrelid = l_oid
+        GROUP BY enumname
+        ORDER BY enumname
+        )
+        SELECT 'CREATE TYPE ' || te.enumname || ' AS ENUM (' || te.enumvalues || ')'
+        FROM tabenum te
+    LOOP
+        l_return := l_return || enum_def || CASE l_sqlterminator_guc WHEN TRUE THEN ';' ELSE '' END || E'\n\n';
+    END LOOP;
+
+    IF l_return IS NULL OR l_return = '' THEN
+        RAISE EXCEPTION 'specified object of type ENUM not found';
+    END IF;
+
+    RETURN l_return;
+END;
+$$
+LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION dbms_metadata.get_enums_ddl_of_table (text, text) IS 'This function retrieves DDL of all enums of provided table';
+
+REVOKE ALL ON FUNCTION dbms_metadata.get_enums_ddl_of_table FROM PUBLIC;
+
 ------------------------------------------------------------------------------
 -- DBMS_METADATA.GET_GRANTED_DDL utility functions
 ------------------------------------------------------------------------------
