@@ -68,6 +68,8 @@ BEGIN
         l_return := dbms_metadata.get_ref_constraints_ddl_of_table (base_object_schema, base_object_name);
     WHEN 'INDEX' THEN
         l_return := dbms_metadata.get_indexes_ddl_of_table (base_object_schema, base_object_name);
+    WHEN 'ENUM' THEN
+        l_return := dbms_metadata.get_enums_ddl_of_table(base_object_schema, base_object_name);
     ELSE
         -- Need to add other object types
         RAISE EXCEPTION 'Unknown type';
