@@ -34,6 +34,8 @@ BEGIN
         l_return := dbms_metadata.get_ref_constraint_ddl (schema, name);
     WHEN 'TYPE' THEN
         l_return := dbms_metadata.get_type_ddl (schema, name);
+    WHEN 'ENUM' THEN
+        l_return := dbms_metadata.get_enum_ddl(schema, name);
     ELSE
         -- Need to add other object types
         RAISE EXCEPTION 'Unknown type';
