@@ -1348,6 +1348,7 @@ DECLARE
     l_schema_oid oid;
     l_pg_class_objs text[] := ARRAY['TABLE', 'VIEW', 'SEQUENCE', 'INDEX', 'CONSTRAINT', 'REF_CONSTRAINT', 'TYPE'];
     l_pg_proc_objs text[] := ARRAY['PROCEDURE', 'FUNCTION'];
+    l_pg_type_objs text[] := ARRAY['ENUM'];
 BEGIN
     IF p_schema IS NOT NULL THEN
         SELECT dbms_metadata.get_schema_oid(p_schema) INTO l_schema_oid;
@@ -1376,6 +1377,18 @@ BEGIN
             WHERE
                 proname = p_object_name
                 AND pronamespace = l_schema_oid;
+        END IF;
+    ELSIF p_object_type = ANY(l_pg_type_objs) THEN
+        IF p_schema IS NULL THEN
+            SELECT quote_ident(p_object_name)::regtype::oid INTO STRICT l_oid;
+        ELSE
+            SELECT
+                oid INTO STRICT l_oid
+            FROM
+                pg_type
+            WHERE
+                typname = p_object_name
+                AND typnamespace = l_schema_oid;
         END IF;
     END IF;
 
