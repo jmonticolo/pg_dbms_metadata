@@ -895,13 +895,12 @@ BEGIN
 
     WITH enum_values AS (
     SELECT
-        format_type(a.atttypid, a.atttypmod) AS enumname,
+        format_type(e.enumtypid, -1) AS enumname,
         string_agg(quote_literal(e.enumlabel), ', ' ORDER BY e.enumsortorder) AS enumvalues
     FROM
-        pg_attribute a
-        INNER JOIN pg_enum e ON a.atttypid = e.enumtypid
+        pg_enum e
     WHERE
-        a.atttypid = l_oid
+        e.enumtypid = l_oid
     GROUP BY enumname
     )
     SELECT 'CREATE TYPE ' || ev.enumname || ' AS ENUM (' || ev.enumvalues || ')'
