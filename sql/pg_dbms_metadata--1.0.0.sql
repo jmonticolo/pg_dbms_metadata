@@ -876,6 +876,54 @@ COMMENT ON FUNCTION dbms_metadata.get_type_ddl (text, text) IS 'This function re
 
 REVOKE ALL ON FUNCTION dbms_metadata.get_type_ddl FROM PUBLIC;
 
+CREATE OR REPLACE FUNCTION dbms_metadata.get_enum_ddl(schema_name text, enum_name text)
+RETURNS text AS $$
+DECLARE
+    l_oid oid;
+    l_create_statement text;
+    l_sqlterminator_guc boolean;
+BEGIN
+    -- Initialize transform params if they have not been set before
+    PERFORM dbms_metadata.init_transform_params();
+
+    -- Getting values of transform params
+    SELECT current_setting('DBMS_METADATA.SQLTERMINATOR')::boolean INTO l_sqlterminator_guc;
+
+    SELECT dbms_metadata.get_object_oid('ENUM', schema_name, enum_name) INTO l_oid;
+
+    WITH enum_values AS (
+    SELECT
+        format_type(a.atttypid, a.atttypmod) AS enumname,
+        string_agg(quote_literal(e.enumlabel), ', ' ORDER BY e.enumsortorder) AS enumvalues
+    FROM
+        pg_attribute a
+        INNER JOIN pg_enum e ON a.atttypid = e.enumtypid
+    WHERE
+        a.atttypid = l_oid
+    GROUP BY enumname
+    )
+    SELECT 'CREATE TYPE ' || ev.enumname || ' AS ENUM (' || ev.enumvalues || ')'
+    INTO STRICT l_create_statement
+    FROM enum_values ev;
+
+    IF l_sqlterminator_guc THEN
+        l_create_statement := concat(l_create_statement, ';');
+    END IF;
+    RETURN l_create_statement;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        IF p_schema IS NULL THEN
+            RAISE EXCEPTION 'Enum % does not exist. Please provide schema name.', p_type_name;
+        ELSE
+            RAISE EXCEPTION 'Enum % does not exist in schema %', p_type_name, p_schema;
+        END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION dbms_metadata.get_enum_ddl (text, text) IS 'This function retrieves DDL of an enum';
+
+REVOKE ALL ON FUNCTION dbms_metadata.get_enum_ddl FROM PUBLIC;
+
 ------------------------------------------------------------------------------
 -- DBMS_METADATA.GET_DEPENDENT_DDL utility functions
 ------------------------------------------------------------------------------
